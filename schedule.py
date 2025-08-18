@@ -633,6 +633,78 @@ def main():
                 file_name=f"schedule_backup_{semester.lower().replace(' ', '_')}.json",
                 mime="application/json"
             )
+        
+        # JSON import functionality
+        st.subheader("📂 Restore from Backup")
+        
+        uploaded_file = st.file_uploader(
+            "Upload a backup JSON file", 
+            type=['json'],
+            help="Upload a previously saved schedule backup to restore your data"
+        )
+        
+        if uploaded_file is not None:
+            try:
+                # Read the JSON file
+                backup_data = json.load(uploaded_file)
+                
+                # Validate required fields
+                required_fields = ['classes', 'office_hours', 'time_periods']
+                if all(field in backup_data for field in required_fields):
+                    
+                    # Show preview of what will be imported
+                    st.info(f"""
+                    **Import Preview:**
+                    • Semester: {backup_data.get('semester', 'Not specified')}
+                    • Professor: {backup_data.get('professor_name', 'Not specified')}
+                    • Classes: {len(backup_data['classes'])} classes
+                    • Office Hours: {len(backup_data['office_hours'])} entries
+                    • Export Date: {backup_data.get('export_date', 'Unknown')}
+                    """)
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        if st.button("✅ Import Data", type="primary"):
+                            # Restore the data
+                            st.session_state.classes = backup_data['classes']
+                            st.session_state.office_hours = backup_data['office_hours'] 
+                            st.session_state.time_periods = backup_data['time_periods']
+                            
+                            st.success(f"✅ Successfully imported {len(backup_data['classes'])} classes and {len(backup_data['office_hours'])} office hours!")
+                            st.balloons()
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button("🔄 Merge with Current", help="Add imported data to existing schedule"):
+                            # Merge instead of replace
+                            st.session_state.classes.extend(backup_data['classes'])
+                            st.session_state.office_hours.extend(backup_data['office_hours'])
+                            
+                            # Ask about time periods
+                            if backup_data['time_periods'] != st.session_state.time_periods:
+                                st.warning("⚠️ Time periods in backup differ from current. Keeping current time periods.")
+                            
+                            st.success(f"✅ Successfully merged {len(backup_data['classes'])} classes and {len(backup_data['office_hours'])} office hours!")
+                            st.rerun()
+                    
+                else:
+                    st.error("❌ Invalid backup file. Missing required fields.")
+                    st.write("Required fields:", required_fields)
+                    st.write("Found fields:", list(backup_data.keys()))
+                    
+            except json.JSONDecodeError:
+                st.error("❌ Invalid JSON file. Please check the file format.")
+            except Exception as e:
+                st.error(f"❌ Error reading backup file: {str(e)}")
+        
+        st.info("""
+        💡 **Import Tips:**
+        • **Import Data**: Completely replaces your current schedule
+        • **Merge with Current**: Adds imported classes to existing ones
+        • Only JSON files exported from this app are supported
+        • Time periods from backup will be restored when importing
+        """)
             
 if __name__ == "__main__":
     main()
