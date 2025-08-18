@@ -435,28 +435,13 @@ def main():
         
         classroom = st.text_input("Classroom", placeholder="Room 205")
         
-        # Color selection dropdown
+        # Simple color selection - no preview needed
         color_name = st.selectbox(
             "Color", 
             options=list(COLOR_PALETTE.keys()),
             index=0
         )
         color = COLOR_PALETTE[color_name]
-        
-        # Show color preview that updates based on selection
-        text_color = "black" if color_name == "Yellow" else "white"
-        st.markdown(f"""
-        <div style="background-color: {color}; 
-                    color: {text_color}; 
-                    padding: 10px; 
-                    border-radius: 5px; 
-                    text-align: center; 
-                    margin: 5px 0;
-                    font-weight: bold;
-                    border: 2px solid #333;">
-            ✓ {color_name} Preview
-        </div>
-        """, unsafe_allow_html=True)
         
         submitted = st.form_submit_button("Add Class")
         
