@@ -106,6 +106,7 @@ def create_schedule_table():
         border-collapse: collapse;
         margin: 20px 0;
         font-family: Arial, sans-serif;
+        table-layout: fixed;
     }
     .schedule-table th {
         background-color: #343a40;
@@ -115,22 +116,31 @@ def create_schedule_table():
         font-weight: bold;
         border: 1px solid #000;
     }
+    .schedule-table th:first-child {
+        width: 15%;
+    }
+    .schedule-table th:not(:first-child) {
+        width: 17%;
+    }
     .schedule-table td {
         padding: 15px;
         text-align: center;
         border: 1px solid #000;
         height: 80px;
         vertical-align: middle;
+        width: 17%;
     }
     .time-cell {
         background-color: #e9ecef !important;
         color: #000 !important;
         font-weight: bold;
+        width: 15% !important;
     }
     .lunch-cell {
         background-color: #ffc107 !important;
         color: #000 !important;
         font-weight: bold;
+        width: 15% !important;
     }
     .lunch-empty {
         background-color: #fff3cd !important;
@@ -180,8 +190,6 @@ def create_schedule_table():
     html += "</tbody></table>"
     
     return html
-
-# Then update the display in tab1:
 
 def create_office_hours_display():
     """Create office hours display"""
