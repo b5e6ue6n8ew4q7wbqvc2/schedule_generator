@@ -435,25 +435,75 @@ def main():
         
         classroom = st.text_input("Classroom", placeholder="Room 205")
         
-        # Color selection dropdown
-        color_name = st.selectbox(
-            "Color", 
-            options=list(COLOR_PALETTE.keys()),
-            index=0
-        )
-        color = COLOR_PALETTE[color_name]
+        # Color selection with visual color picker
+        st.write("**Choose Color:**")
         
-        # Show color preview (use black text for yellow)
-        text_color = "black" if color_name == "Yellow" else "white"
+        # Initialize selected color if not exists
+        if 'selected_color' not in st.session_state:
+            st.session_state.selected_color = COLOR_PALETTE["Royal Blue"]
+            st.session_state.selected_color_name = "Royal Blue"
+        
+        # Create a visual color picker grid
+        color_items = list(COLOR_PALETTE.items())
+        colors_per_row = 4
+        
+        for row in range(0, len(color_items), colors_per_row):
+            cols = st.columns(colors_per_row)
+            for col_idx in range(colors_per_row):
+                item_idx = row + col_idx
+                if item_idx < len(color_items):
+                    color_name, color_hex = color_items[item_idx]
+                    with cols[col_idx]:
+                        # Create colored button
+                        is_selected = st.session_state.selected_color == color_hex
+                        border_style = "3px solid #000" if is_selected else "1px solid #ccc"
+                        
+                        # Use shorter names for buttons
+                        short_name = color_name.replace(" ", "\n")
+                        
+                        button_html = f"""
+                        <div style="text-align: center; margin: 2px;">
+                            <div style="
+                                background-color: {color_hex}; 
+                                width: 100%; 
+                                height: 35px; 
+                                border-radius: 8px; 
+                                border: {border_style};
+                                margin-bottom: 3px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: {'black' if color_name == 'Yellow' else 'white'};
+                                font-weight: bold;
+                                font-size: 8px;
+                                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                            ">
+                                {'✓' if is_selected else ''}
+                            </div>
+                            <div style="font-size: 8px; color: #666; text-align: center;">
+                                {color_name.split()[0]}
+                            </div>
+                        </div>
+                        """
+                        st.markdown(button_html, unsafe_allow_html=True)
+                        
+                        if st.button("", key=f"color_select_{item_idx}", help=f"Select {color_name}"):
+                            st.session_state.selected_color = color_hex
+                            st.session_state.selected_color_name = color_name
+                            st.rerun()
+        
+        # Show selected color preview
+        text_color = "black" if st.session_state.selected_color_name == "Yellow" else "white"
         st.markdown(f"""
-        <div style="background-color: {color}; 
+        <div style="background-color: {st.session_state.selected_color}; 
                     color: {text_color}; 
                     padding: 8px; 
                     border-radius: 5px; 
                     text-align: center; 
-                    margin: 5px 0;
-                    font-weight: bold;">
-            {color_name} Preview
+                    margin: 8px 0;
+                    font-weight: bold;
+                    border: 2px solid #333;">
+            ✓ {st.session_state.selected_color_name}
         </div>
         """, unsafe_allow_html=True)
         
@@ -469,7 +519,7 @@ def main():
                     break
             
             if not conflict:
-                add_class(course_name, day, period, classroom, color)
+                add_class(course_name, day, period, classroom, st.session_state.selected_color)
                 st.success(f"Added {course_name}!")
                 st.rerun()
     
