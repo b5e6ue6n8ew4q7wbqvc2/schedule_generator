@@ -643,6 +643,6 @@ def main():
                 file_name=f"schedule_backup_{semester.lower().replace(' ', '_')}.json",
                 mime="application/json"
             )
-
+            
 if __name__ == "__main__":
     main()
