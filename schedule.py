@@ -76,7 +76,7 @@ def add_office_hours(day, start_time, end_time, location):
     st.session_state.office_hours.append(office_hour)
 
 def create_schedule_table():
-    """Create a visual schedule grid using styled boxes"""
+    """Create a visual schedule grid using Streamlit columns"""
     time_periods = get_time_periods()
     
     # Create the schedule matrix
@@ -92,155 +92,76 @@ def create_schedule_table():
         period = class_info['period']
         schedule_matrix[day][period] = class_info
     
-    # Build HTML grid
-    html = """
-    <style>
-    .schedule-container {
-        max-width: 1200px;
-        margin: 20px auto;
-        font-family: Arial, sans-serif;
-    }
-    .schedule-grid {
-        display: grid;
-        grid-template-columns: 150px repeat(5, 1fr);
-        gap: 10px;
-        margin: 20px 0;
-    }
-    .time-header, .day-header {
-        background: linear-gradient(135deg, #343a40 0%, #495057 100%);
-        color: white;
-        padding: 15px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 14px;
-    }
-    .time-slot {
-        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-        color: #212529;
-        padding: 15px 10px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 12px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 80px;
-    }
-    .lunch-slot {
-        background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
-        color: #212529;
-        padding: 15px 10px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 12px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-height: 60px;
-    }
-    .class-box {
-        padding: 15px;
-        border-radius: 8px;
-        text-align: left;
-        font-weight: bold;
-        font-size: 13px;
-        min-height: 80px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: transform 0.2s ease;
-    }
-    .class-box:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    .empty-slot {
-        background: #f8f9fa;
-        border: 2px dashed #dee2e6;
-        border-radius: 8px;
-        min-height: 80px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #6c757d;
-        font-style: italic;
-        font-size: 12px;
-    }
-    .lunch-empty {
-        background: #fff3cd;
-        border: 2px dashed #ffeaa7;
-        border-radius: 8px;
-        min-height: 60px;
-    }
-    .course-name {
-        font-size: 14px;
-        font-weight: bold;
-        margin-bottom: 5px;
-    }
-    .course-details {
-        font-size: 11px;
-        opacity: 0.9;
-    }
-    </style>
+    # Create header
+    st.markdown("### Weekly Class Schedule")
     
-    <div class="schedule-container">
-        <div class="schedule-grid">
-    """
-    
-    # Header row
-    html += '<div class="time-header">Time</div>'
-    for day in DAYS:
-        html += f'<div class="day-header">{day}</div>'
-    
-    # Period rows
-    for period in PERIODS:
-        # Time slot
-        html += f'''
-        <div class="time-slot">
-            <div style="font-size: 13px; font-weight: bold;">Period {period}</div>
-            <div style="font-size: 11px; margin-top: 3px;">{time_periods[period]}</div>
+    # Create header row
+    header_cols = st.columns([1, 2, 2, 2, 2, 2])
+    with header_cols[0]:
+        st.markdown(f"""
+        <div style="background-color: #343a40; color: white; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold;">
+            Time
         </div>
-        '''
+        """, unsafe_allow_html=True)
+    for i, day in enumerate(DAYS, 1):
+        with header_cols[i]:
+            st.markdown(f"""
+            <div style="background-color: #343a40; color: white; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold;">
+                {day}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Create period rows
+    for period in PERIODS:
+        cols = st.columns([1, 2, 2, 2, 2, 2])
         
-        # Day slots
-        for day in DAYS:
-            class_info = schedule_matrix[day][period]
-            if class_info:
-                text_color = "#000000" if class_info['color'] == "#f1c40f" else "#ffffff"
-                html += f'''
-                <div class="class-box" style="background: linear-gradient(135deg, {class_info['color']} 0%, {class_info['color']}dd 100%); color: {text_color};">
-                    <div class="course-name">{class_info['course_name']}</div>
-                    <div class="course-details">📍 {class_info['classroom']}</div>
-                    <div class="course-details">🕐 {time_periods[period]}</div>
-                </div>
-                '''
-            else:
-                html += '<div class="empty-slot">Free</div>'
+        # Time column - dark theme
+        with cols[0]:
+            st.markdown(f"""
+            <div style="background-color: #495057; color: white; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold;">
+                Period {period}<br>
+                <small style="opacity: 0.9;">{time_periods[period]}</small>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Day columns
+        for i, day in enumerate(DAYS, 1):
+            with cols[i]:
+                class_info = schedule_matrix[day][period]
+                if class_info:
+                    text_color = "#000000" if class_info['color'] == "#f1c40f" else "#ffffff"
+                    st.markdown(f"""
+                    <div style="background-color: {class_info['color']}; color: {text_color}; padding: 12px; border-radius: 8px; margin: 2px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <strong>{class_info['course_name']}</strong><br>
+                        <small>📍 {class_info['classroom']}</small><br>
+                        <small>🕐 {time_periods[period]}</small>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    # Empty slot - no background, just empty space
+                    st.markdown(f"""
+                    <div style="margin: 2px 0; min-height: 60px;">
+                    </div>
+                    """, unsafe_allow_html=True)
         
         # Add lunch break after period 2
         if period == 2:
-            # Lunch time slot
-            html += f'''
-            <div class="lunch-slot">
-                <div style="font-size: 13px; font-weight: bold;">Lunch Break</div>
-                <div style="font-size: 11px; margin-top: 3px;">{time_periods['Lunch']}</div>
-            </div>
-            '''
+            lunch_cols = st.columns([1, 2, 2, 2, 2, 2])
             
-            # Empty lunch slots
-            for day in DAYS:
-                html += '<div class="lunch-empty"></div>'
-    
-    html += '''
-        </div>
-    </div>
-    '''
-    
-    return html
+            with lunch_cols[0]:
+                st.markdown(f"""
+                <div style="background-color: #f39c12; color: #000; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold;">
+                    Lunch Break<br>
+                    <small>{time_periods['Lunch']}</small>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            for i in range(1, 6):
+                with lunch_cols[i]:
+                    st.markdown(f"""
+                    <div style="margin: 2px 0; min-height: 40px;">
+                    </div>
+                    """, unsafe_allow_html=True)
 
 def create_office_hours_display():
     """Create office hours display"""
@@ -594,8 +515,7 @@ def main():
         
         # Create and display schedule
         if st.session_state.classes:
-            html_table = create_schedule_table()
-            st.markdown(html_table, unsafe_allow_html=True)
+            create_schedule_table()
             
             # Office hours display
             oh_display = create_office_hours_display()
