@@ -435,29 +435,26 @@ def main():
         
         classroom = st.text_input("Classroom", placeholder="Room 205")
         
-        # Color selection dropdown (works inside forms)
+        # Color selection dropdown
         color_name = st.selectbox(
             "Color", 
             options=list(COLOR_PALETTE.keys()),
-            index=0,
-            format_func=lambda x: f"🎨 {x}"
+            index=0
         )
         color = COLOR_PALETTE[color_name]
         
-        # Show color preview with visual swatch
+        # Show color preview that updates based on selection
         text_color = "black" if color_name == "Yellow" else "white"
         st.markdown(f"""
-        <div style="display: flex; align-items: center; background-color: {color}; 
+        <div style="background-color: {color}; 
                     color: {text_color}; 
                     padding: 10px; 
-                    border-radius: 8px; 
+                    border-radius: 5px; 
                     text-align: center; 
-                    margin: 8px 0;
+                    margin: 5px 0;
                     font-weight: bold;
-                    border: 2px solid #333;
-                    box-shadow: 0 3px 6px rgba(0,0,0,0.2);">
-            <div style="width: 20px; height: 20px; background-color: {color}; border-radius: 50%; margin-right: 10px; border: 2px solid {'#000' if color_name == 'Yellow' else '#fff'};"></div>
-            ✓ Selected: {color_name}
+                    border: 2px solid #333;">
+            ✓ {color_name} Preview
         </div>
         """, unsafe_allow_html=True)
         
