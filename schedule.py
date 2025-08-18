@@ -82,7 +82,7 @@ def create_schedule_table():
     for day in DAYS:
         schedule_data[day] = {}
         for period in PERIODS:
-            schedule_data[day][period] = {"content": "", "color": "#f8f9fa", "text_color": "#000000"}
+            schedule_data[day][period] = {"content": "", "color": "#f8f9fa"}
     
     # Fill in classes
     for class_info in st.session_state.classes:
@@ -92,69 +92,77 @@ def create_schedule_table():
         current_time = time_periods[period]
         schedule_data[day][period] = {
             "content": f"<b>{class_info['course_name']}</b><br>{class_info['classroom']}<br><i>{current_time}</i>",
-            "color": class_info['color'],
-            "text_color": "#ffffff"
+            "color": class_info['color']
         }
     
-    # Create figure
-    fig = go.Figure()
+    # Prepare table data
+    header_values = ["<b>Time</b>"] + [f"<b>{day}</b>" for day in DAYS]
     
-    # Create table
-    cell_colors = []
-    cell_text = []
+    # Create rows data
+    table_values = []
+    table_colors = []
     
+    # Time column
+    time_column = []
+    time_colors = []
+    
+    # Data columns for each day
+    day_columns = {day: [] for day in DAYS}
+    day_colors = {day: [] for day in DAYS}
+    
+    # Build rows
     for period in PERIODS:
-        row_colors = []
-        row_text = []
+        # Time column
+        time_column.append(f"<b>Period {period}</b><br>{time_periods[period]}")
+        time_colors.append("#e9ecef")
         
-        # Add time period
-        row_colors.append("#e9ecef")
-        row_text.append(f"<b>Period {period}</b><br>{time_periods[period]}")
-        
-        # Add each day
+        # Day columns
         for day in DAYS:
-            content = schedule_data[day][period]["content"]
-            color = schedule_data[day][period]["color"] 
-            
-            row_colors.append(color)
-            if content:
-                row_text.append(content)
+            if schedule_data[day][period]["content"]:
+                day_columns[day].append(schedule_data[day][period]["content"])
+                day_colors[day].append(schedule_data[day][period]["color"])
             else:
-                row_text.append("")
+                day_columns[day].append("")
+                day_colors[day].append("#f8f9fa")
         
-        cell_colors.append(row_colors)
-        cell_text.append(row_text)
+        # Add lunch break after period 2
+        if period == 2:
+            time_column.append(f"<b>Lunch Break</b><br>{time_periods['Lunch']}")
+            time_colors.append("#ffc107")
+            
+            for day in DAYS:
+                day_columns[day].append("")
+                day_colors[day].append("#fff3cd")
     
-    # Add lunch break row
-    lunch_colors = ["#ffc107"] + ["#fff3cd"] * 5
-    lunch_text = [f"<b>Lunch Break</b><br>{time_periods['Lunch']}"] + [""] * 5
+    # Combine all columns
+    all_values = [time_column] + [day_columns[day] for day in DAYS]
+    all_colors = [time_colors] + [day_colors[day] for day in DAYS]
     
-    # Insert lunch after period 2 (index 1)
-    cell_colors.insert(2, lunch_colors)
-    cell_text.insert(2, lunch_text)
-    
-    fig.add_trace(go.Table(
+    # Create figure
+    fig = go.Figure(data=[go.Table(
         header=dict(
-            values=["<b>Time</b>"] + [f"<b>{day}</b>" for day in DAYS],
+            values=header_values,
             fill_color="#343a40",
-            font_color="white",
-            font_size=14,
-            height=40
+            font=dict(color="white", size=14),
+            height=40,
+            align="center"
         ),
         cells=dict(
-            values=[[row[i] for row in cell_text] for i in range(6)],  # 6 columns (time + 5 days)
-            fill_color=[[row[i] for row in cell_colors] for i in range(6)],
-            font_color="black",
-            font_size=12,
+            values=all_values,
+            fill_color=all_colors,
+            font=dict(color="white", size=12),
             height=80,
             align="center"
         )
-    ))
+    )])
     
     fig.update_layout(
-        title="Weekly Class Schedule",
-        title_x=0.5,
-        title_font_size=20,
+        title={
+            'text': "Weekly Class Schedule",
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 20}
+        },
         height=600,
         margin=dict(l=0, r=0, t=50, b=0)
     )
