@@ -11,7 +11,6 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from io import BytesIO
-import calendar
 
 # Configure page
 st.set_page_config(
@@ -20,8 +19,8 @@ st.set_page_config(
     layout="wide"
 )
 
-# Define static time periods
-TIME_PERIODS = {
+# Default time periods (your current schedule)
+DEFAULT_TIME_PERIODS = {
     1: "9:00-10:30",
     2: "10:45-12:15",
     "Lunch": "12:15-13:10",
@@ -39,16 +38,27 @@ def initialize_session_state():
         st.session_state.classes = []
     if 'office_hours' not in st.session_state:
         st.session_state.office_hours = []
+    if 'time_periods' not in st.session_state:
+        st.session_state.time_periods = DEFAULT_TIME_PERIODS.copy()
+
+def get_time_periods():
+    """Get current time periods (custom or default)"""
+    return st.session_state.time_periods
+
+def update_time_period(period, new_time):
+    """Update a specific time period"""
+    st.session_state.time_periods[period] = new_time
 
 def add_class(course_name, day, period, classroom, color):
     """Add a class to the schedule"""
+    time_periods = get_time_periods()
     new_class = {
         'course_name': course_name,
         'day': day,
         'period': period,
         'classroom': classroom,
         'color': color,
-        'time': TIME_PERIODS[period]
+        'time': time_periods[period]
     }
     st.session_state.classes.append(new_class)
 
@@ -65,6 +75,7 @@ def add_office_hours(day, start_time, end_time, location):
 
 def create_schedule_table():
     """Create a visual schedule table using Plotly"""
+    time_periods = get_time_periods()
     
     # Create base schedule grid
     schedule_data = {}
@@ -77,17 +88,16 @@ def create_schedule_table():
     for class_info in st.session_state.classes:
         day = class_info['day']
         period = class_info['period']
+        # Update time in case periods were changed after class was added
+        current_time = time_periods[period]
         schedule_data[day][period] = {
-            "content": f"<b>{class_info['course_name']}</b><br>{class_info['classroom']}<br><i>{class_info['time']}</i>",
+            "content": f"<b>{class_info['course_name']}</b><br>{class_info['classroom']}<br><i>{current_time}</i>",
             "color": class_info['color'],
             "text_color": "#ffffff"
         }
     
     # Create figure
     fig = go.Figure()
-    
-    # Add time labels
-    time_labels = [TIME_PERIODS[p] for p in PERIODS]
     
     # Create table
     cell_colors = []
@@ -99,7 +109,7 @@ def create_schedule_table():
         
         # Add time period
         row_colors.append("#e9ecef")
-        row_text.append(f"<b>Period {period}</b><br>{TIME_PERIODS[period]}")
+        row_text.append(f"<b>Period {period}</b><br>{time_periods[period]}")
         
         # Add each day
         for day in DAYS:
@@ -117,7 +127,7 @@ def create_schedule_table():
     
     # Add lunch break row
     lunch_colors = ["#ffc107"] + ["#fff3cd"] * 5
-    lunch_text = ["<b>Lunch Break</b><br>12:15-13:10"] + [""] * 5
+    lunch_text = [f"<b>Lunch Break</b><br>{time_periods['Lunch']}"] + [""] * 5
     
     # Insert lunch after period 2 (index 1)
     cell_colors.insert(2, lunch_colors)
@@ -164,6 +174,7 @@ def create_office_hours_display():
 
 def generate_pdf_schedule(semester, professor_name):
     """Generate a PDF of the class schedule"""
+    time_periods = get_time_periods()
     buffer = BytesIO()
     
     # Create PDF document
@@ -232,7 +243,7 @@ def generate_pdf_schedule(semester, professor_name):
     
     # Period rows
     for period in PERIODS:
-        row = [f"Period {period}\n{TIME_PERIODS[period]}"]
+        row = [f"Period {period}\n{time_periods[period]}"]
         for day in DAYS:
             cell_content = schedule_grid[day][period] if schedule_grid[day][period] else ""
             row.append(cell_content)
@@ -240,7 +251,7 @@ def generate_pdf_schedule(semester, professor_name):
         
         # Add lunch break after period 2
         if period == 2:
-            lunch_row = ["Lunch Break\n12:15-13:10"] + [""] * 5
+            lunch_row = [f"Lunch Break\n{time_periods['Lunch']}"] + [""] * 5
             table_data.append(lunch_row)
     
     # Create table
@@ -330,7 +341,7 @@ def generate_pdf_schedule(semester, professor_name):
     return buffer
 
 def main():
-    st.title("🗓️ Class Schedule Generator")
+    st.title("🗓️ Professor Class Schedule Generator")
     st.markdown("Create a professional weekly class schedule for your semester.")
     
     initialize_session_state()
@@ -338,13 +349,81 @@ def main():
     # Sidebar for inputs
     st.sidebar.header("📝 Schedule Input")
     
+    # Time periods customization
+    st.sidebar.subheader("⏰ Time Periods")
+    with st.sidebar.expander("🔧 Customize Time Periods", expanded=False):
+        st.markdown("**Edit the start and end times for each period:**")
+        
+        time_periods = get_time_periods()
+        
+        # Period 1
+        period1_time = st.text_input("Period 1", value=time_periods[1], key="period1")
+        if period1_time != time_periods[1]:
+            update_time_period(1, period1_time)
+        
+        # Period 2
+        period2_time = st.text_input("Period 2", value=time_periods[2], key="period2")
+        if period2_time != time_periods[2]:
+            update_time_period(2, period2_time)
+        
+        # Lunch Break
+        lunch_time = st.text_input("Lunch Break", value=time_periods["Lunch"], key="lunch")
+        if lunch_time != time_periods["Lunch"]:
+            update_time_period("Lunch", lunch_time)
+        
+        # Period 3
+        period3_time = st.text_input("Period 3", value=time_periods[3], key="period3")
+        if period3_time != time_periods[3]:
+            update_time_period(3, period3_time)
+        
+        # Period 4
+        period4_time = st.text_input("Period 4", value=time_periods[4], key="period4")
+        if period4_time != time_periods[4]:
+            update_time_period(4, period4_time)
+        
+        # Period 5
+        period5_time = st.text_input("Period 5", value=time_periods[5], key="period5")
+        if period5_time != time_periods[5]:
+            update_time_period(5, period5_time)
+        
+        # Reset to defaults button
+        if st.button("🔄 Reset to Default Times"):
+            st.session_state.time_periods = DEFAULT_TIME_PERIODS.copy()
+            st.rerun()
+        
+        st.info("💡 Format examples: 9:00-10:30, 14:15-15:45")
+    
+    # Show current time periods
+    current_times = get_time_periods()
+    st.sidebar.markdown("**Current Schedule:**")
+    for period in PERIODS:
+        st.sidebar.write(f"Period {period}: {current_times[period]}")
+    st.sidebar.write(f"Lunch: {current_times['Lunch']}")
+    
     # Semester info
-    st.sidebar.subheader("Semester Information")
+    st.sidebar.subheader("📚 Semester Information")
     semester = st.sidebar.text_input("Semester", placeholder="Fall 2024", value="Fall 2024")
     professor_name = st.sidebar.text_input("Professor Name", placeholder="Dr. Smith")
     
     # Add classes
     st.sidebar.subheader("➕ Add Classes")
+    
+    # Define color palette with yellow added
+    COLOR_PALETTE = {
+        "Royal Blue": "#1f77b4",
+        "Forest Green": "#2ca02c", 
+        "Crimson Red": "#d62728",
+        "Purple": "#9467bd",
+        "Orange": "#ff7f0e",
+        "Yellow": "#f1c40f",
+        "Teal": "#17becf",
+        "Brown": "#8c564b",
+        "Pink": "#e377c2",
+        "Gray": "#7f7f7f",
+        "Navy": "#1f3a93",
+        "Emerald": "#2ecc71",
+        "Burgundy": "#922b21"
+    }
     
     with st.sidebar.form("add_class_form"):
         course_name = st.text_input("Course Name", placeholder="CS 101 - Intro to Programming")
@@ -355,7 +434,28 @@ def main():
             period = st.selectbox("Period", PERIODS)
         
         classroom = st.text_input("Classroom", placeholder="Room 205")
-        color = st.color_picker("Color", "#1f77b4")
+        
+        # Color selection dropdown
+        color_name = st.selectbox(
+            "Color", 
+            options=list(COLOR_PALETTE.keys()),
+            index=0
+        )
+        color = COLOR_PALETTE[color_name]
+        
+        # Show color preview (use black text for yellow)
+        text_color = "black" if color_name == "Yellow" else "white"
+        st.markdown(f"""
+        <div style="background-color: {color}; 
+                    color: {text_color}; 
+                    padding: 8px; 
+                    border-radius: 5px; 
+                    text-align: center; 
+                    margin: 5px 0;
+                    font-weight: bold;">
+            {color_name} Preview
+        </div>
+        """, unsafe_allow_html=True)
         
         submitted = st.form_submit_button("Add Class")
         
@@ -434,10 +534,13 @@ def main():
             for i, class_info in enumerate(st.session_state.classes):
                 col1, col2 = st.columns([4, 1])
                 with col1:
+                    # Use black text for yellow background, get current time
+                    current_time = get_time_periods()[class_info['period']]
+                    text_color = "black" if class_info['color'] == "#f1c40f" else "white"
                     st.markdown(f"""
-                    <div style="background-color: {class_info['color']}; color: white; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                    <div style="background-color: {class_info['color']}; color: {text_color}; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
                         <b>{class_info['course_name']}</b><br>
-                        {class_info['day']} - Period {class_info['period']} ({class_info['time']})<br>
+                        {class_info['day']} - Period {class_info['period']} ({current_time})<br>
                         📍 {class_info['classroom']}
                     </div>
                     """, unsafe_allow_html=True)
@@ -491,6 +594,7 @@ def main():
                 **PDF Features:**
                 • Professional landscape layout
                 • Color-coded classes
+                • Custom time periods
                 • Office hours included  
                 • Print-ready format
                 """)
@@ -524,6 +628,7 @@ def main():
                 'professor_name': professor_name,
                 'classes': st.session_state.classes,
                 'office_hours': st.session_state.office_hours,
+                'time_periods': st.session_state.time_periods,
                 'export_date': datetime.now().isoformat()
             }
             
