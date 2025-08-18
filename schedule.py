@@ -76,7 +76,7 @@ def add_office_hours(day, start_time, end_time, location):
     st.session_state.office_hours.append(office_hour)
 
 def create_schedule_table():
-    """Create a visual schedule table using HTML"""
+    """Create a visual schedule grid using styled boxes"""
     time_periods = get_time_periods()
     
     # Create the schedule matrix
@@ -84,110 +84,161 @@ def create_schedule_table():
     for day in DAYS:
         schedule_matrix[day] = {}
         for period in PERIODS:
-            schedule_matrix[day][period] = {"content": "", "color": "#f8f9fa", "text_color": "#000000"}
+            schedule_matrix[day][period] = None
     
     # Fill with class data
     for class_info in st.session_state.classes:
         day = class_info['day']
         period = class_info['period']
-        content = f"<b>{class_info['course_name']}</b><br>{class_info['classroom']}"
-        text_color = "#000000" if class_info['color'] == "#f1c40f" else "#ffffff"  # Black text on yellow
-        schedule_matrix[day][period] = {
-            "content": content,
-            "color": class_info['color'],
-            "text_color": text_color
-        }
+        schedule_matrix[day][period] = class_info
     
-    # Build HTML table
+    # Build HTML grid
     html = """
     <style>
-    .schedule-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 20px 0;
+    .schedule-container {
+        max-width: 1200px;
+        margin: 20px auto;
         font-family: Arial, sans-serif;
-        table-layout: fixed;
     }
-    .schedule-table th {
-        background-color: #343a40;
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: 150px repeat(5, 1fr);
+        gap: 10px;
+        margin: 20px 0;
+    }
+    .time-header, .day-header {
+        background: linear-gradient(135deg, #343a40 0%, #495057 100%);
         color: white;
         padding: 15px;
+        border-radius: 8px;
         text-align: center;
         font-weight: bold;
-        border: 1px solid #000;
+        font-size: 14px;
     }
-    .schedule-table th:first-child {
-        width: 15%;
+    .time-slot {
+        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+        color: #212529;
+        padding: 15px 10px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 80px;
     }
-    .schedule-table th:not(:first-child) {
-        width: 17%;
+    .lunch-slot {
+        background: linear-gradient(135deg, #ffc107 0%, #ffca2c 100%);
+        color: #212529;
+        padding: 15px 10px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 60px;
     }
-    .schedule-table td {
+    .class-box {
         padding: 15px;
-        text-align: center;
-        border: 1px solid #000;
-        height: 80px;
-        vertical-align: middle;
-        width: 17%;
-    }
-    .time-cell {
-        background-color: #e9ecef !important;
-        color: #000 !important;
+        border-radius: 8px;
+        text-align: left;
         font-weight: bold;
-        width: 15% !important;
+        font-size: 13px;
+        min-height: 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
     }
-    .lunch-cell {
-        background-color: #ffc107 !important;
-        color: #000 !important;
-        font-weight: bold;
-        width: 15% !important;
+    .class-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .empty-slot {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        min-height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-style: italic;
+        font-size: 12px;
     }
     .lunch-empty {
-        background-color: #fff3cd !important;
+        background: #fff3cd;
+        border: 2px dashed #ffeaa7;
+        border-radius: 8px;
+        min-height: 60px;
+    }
+    .course-name {
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .course-details {
+        font-size: 11px;
+        opacity: 0.9;
     }
     </style>
     
-    <table class="schedule-table">
-        <thead>
-            <tr>
-                <th>Time</th>
-                <th>Monday</th>
-                <th>Tuesday</th>
-                <th>Wednesday</th>
-                <th>Thursday</th>
-                <th>Friday</th>
-            </tr>
-        </thead>
-        <tbody>
+    <div class="schedule-container">
+        <div class="schedule-grid">
     """
     
-    # Add period rows
+    # Header row
+    html += '<div class="time-header">Time</div>'
+    for day in DAYS:
+        html += f'<div class="day-header">{day}</div>'
+    
+    # Period rows
     for period in PERIODS:
-        html += "<tr>"
+        # Time slot
+        html += f'''
+        <div class="time-slot">
+            <div style="font-size: 13px; font-weight: bold;">Period {period}</div>
+            <div style="font-size: 11px; margin-top: 3px;">{time_periods[period]}</div>
+        </div>
+        '''
         
-        # Time cell
-        html += f'<td class="time-cell">Period {period}<br>{time_periods[period]}</td>'
-        
-        # Day cells
+        # Day slots
         for day in DAYS:
-            cell_data = schedule_matrix[day][period]
-            content = cell_data["content"] if cell_data["content"] else ""
-            bg_color = cell_data["color"]
-            text_color = cell_data["text_color"]
-            
-            html += f'<td style="background-color: {bg_color}; color: {text_color};">{content}</td>'
-        
-        html += "</tr>"
+            class_info = schedule_matrix[day][period]
+            if class_info:
+                text_color = "#000000" if class_info['color'] == "#f1c40f" else "#ffffff"
+                html += f'''
+                <div class="class-box" style="background: linear-gradient(135deg, {class_info['color']} 0%, {class_info['color']}dd 100%); color: {text_color};">
+                    <div class="course-name">{class_info['course_name']}</div>
+                    <div class="course-details">📍 {class_info['classroom']}</div>
+                    <div class="course-details">🕐 {time_periods[period]}</div>
+                </div>
+                '''
+            else:
+                html += '<div class="empty-slot">Free</div>'
         
         # Add lunch break after period 2
         if period == 2:
-            html += "<tr>"
-            html += f'<td class="lunch-cell">Lunch Break<br>{time_periods["Lunch"]}</td>'
+            # Lunch time slot
+            html += f'''
+            <div class="lunch-slot">
+                <div style="font-size: 13px; font-weight: bold;">Lunch Break</div>
+                <div style="font-size: 11px; margin-top: 3px;">{time_periods['Lunch']}</div>
+            </div>
+            '''
+            
+            # Empty lunch slots
             for day in DAYS:
-                html += '<td class="lunch-empty"></td>'
-            html += "</tr>"
+                html += '<div class="lunch-empty"></div>'
     
-    html += "</tbody></table>"
+    html += '''
+        </div>
+    </div>
+    '''
     
     return html
 
