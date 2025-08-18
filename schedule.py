@@ -43,6 +43,8 @@ def initialize_session_state():
 
 def get_time_periods():
     """Get current time periods (custom or default)"""
+    if 'time_periods' not in st.session_state:
+        st.session_state.time_periods = DEFAULT_TIME_PERIODS.copy()
     return st.session_state.time_periods
 
 def update_time_period(period, new_time):
@@ -364,34 +366,42 @@ def main():
         
         time_periods = get_time_periods()
         
+        # Ensure all required periods exist
+        for period in PERIODS + ["Lunch"]:
+            if period not in time_periods:
+                if period == "Lunch":
+                    time_periods[period] = DEFAULT_TIME_PERIODS["Lunch"]
+                else:
+                    time_periods[period] = DEFAULT_TIME_PERIODS[period]
+        
         # Period 1
-        period1_time = st.text_input("Period 1", value=time_periods[1], key="period1")
-        if period1_time != time_periods[1]:
+        period1_time = st.text_input("Period 1", value=time_periods.get(1, "9:00-10:30"), key="period1")
+        if period1_time != time_periods.get(1):
             update_time_period(1, period1_time)
         
         # Period 2
-        period2_time = st.text_input("Period 2", value=time_periods[2], key="period2")
-        if period2_time != time_periods[2]:
+        period2_time = st.text_input("Period 2", value=time_periods.get(2, "10:45-12:15"), key="period2")
+        if period2_time != time_periods.get(2):
             update_time_period(2, period2_time)
         
         # Lunch Break
-        lunch_time = st.text_input("Lunch Break", value=time_periods["Lunch"], key="lunch")
-        if lunch_time != time_periods["Lunch"]:
+        lunch_time = st.text_input("Lunch Break", value=time_periods.get("Lunch", "12:15-13:10"), key="lunch")
+        if lunch_time != time_periods.get("Lunch"):
             update_time_period("Lunch", lunch_time)
         
         # Period 3
-        period3_time = st.text_input("Period 3", value=time_periods[3], key="period3")
-        if period3_time != time_periods[3]:
+        period3_time = st.text_input("Period 3", value=time_periods.get(3, "13:10-14:40"), key="period3")
+        if period3_time != time_periods.get(3):
             update_time_period(3, period3_time)
         
         # Period 4
-        period4_time = st.text_input("Period 4", value=time_periods[4], key="period4")
-        if period4_time != time_periods[4]:
+        period4_time = st.text_input("Period 4", value=time_periods.get(4, "14:55-16:25"), key="period4")
+        if period4_time != time_periods.get(4):
             update_time_period(4, period4_time)
         
         # Period 5
-        period5_time = st.text_input("Period 5", value=time_periods[5], key="period5")
-        if period5_time != time_periods[5]:
+        period5_time = st.text_input("Period 5", value=time_periods.get(5, "16:40-18:10"), key="period5")
+        if period5_time != time_periods.get(5):
             update_time_period(5, period5_time)
         
         # Reset to defaults button
@@ -401,12 +411,14 @@ def main():
         
         st.info("💡 Format examples: 9:00-10:30, 14:15-15:45")
     
-    # Show current time periods
+    # Show current time periods with error handling
     current_times = get_time_periods()
     st.sidebar.markdown("**Current Schedule:**")
     for period in PERIODS:
-        st.sidebar.write(f"Period {period}: {current_times[period]}")
-    st.sidebar.write(f"Lunch: {current_times['Lunch']}")
+        time_display = current_times.get(period, f"Period {period} (not set)")
+        st.sidebar.write(f"Period {period}: {time_display}")
+    lunch_display = current_times.get("Lunch", "Lunch (not set)")
+    st.sidebar.write(f"Lunch: {lunch_display}")
     
     # Semester info
     st.sidebar.subheader("📚 Semester Information")
@@ -705,6 +717,5 @@ def main():
         • Only JSON files exported from this app are supported
         • Time periods from backup will be restored when importing
         """)
-            
+
 if __name__ == "__main__":
-    main()
