@@ -330,7 +330,7 @@ def generate_pdf_schedule(semester, professor_name):
     return buffer
 
 def main():
-    st.title("🗓️ Professor Class Schedule Generator")
+    st.title("🗓️ Class Schedule Generator")
     st.markdown("Create a professional weekly class schedule for your semester.")
     
     initialize_session_state()
