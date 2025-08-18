@@ -115,11 +115,11 @@ def create_schedule_table():
     for period in PERIODS:
         cols = st.columns([1, 2, 2, 2, 2, 2])
         
-        # Time column - dark theme with fixed height
+        # Time column - increased height to match class boxes
         with cols[0]:
             st.markdown(f"""
-            <div style="background-color: #495057; color: white; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div>Period {period}</div>
+            <div style="background-color: #495057; color: white; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="font-size: 14px;">Period {period}</div>
                 <small style="opacity: 0.9; margin-top: 4px;">{time_periods[period]}</small>
             </div>
             """, unsafe_allow_html=True)
@@ -131,16 +131,16 @@ def create_schedule_table():
                 if class_info:
                     text_color = "#000000" if class_info['color'] == "#f1c40f" else "#ffffff"
                     st.markdown(f"""
-                    <div style="background-color: {class_info['color']}; color: {text_color}; padding: 12px; border-radius: 8px; margin: 2px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-height: 80px; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="background-color: {class_info['color']}; color: {text_color}; padding: 12px; border-radius: 8px; margin: 2px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 100px; display: flex; flex-direction: column; justify-content: center;">
                         <strong>{class_info['course_name']}</strong><br>
                         <small>📍 {class_info['classroom']}</small><br>
                         <small>🕐 {time_periods[period]}</small>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
-                    # Empty slot - no background, but same height
+                    # Empty slot - same height as others
                     st.markdown(f"""
-                    <div style="margin: 2px 0; min-height: 80px;">
+                    <div style="margin: 2px 0; height: 100px;">
                     </div>
                     """, unsafe_allow_html=True)
         
@@ -150,7 +150,7 @@ def create_schedule_table():
             
             with lunch_cols[0]:
                 st.markdown(f"""
-                <div style="background-color: #f39c12; color: #000; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <div style="background-color: #f39c12; color: #000; padding: 12px; border-radius: 8px; text-align: center; margin: 2px 0; font-weight: bold; height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     <div>Lunch Break</div>
                     <small style="margin-top: 4px;">{time_periods['Lunch']}</small>
                 </div>
@@ -159,7 +159,7 @@ def create_schedule_table():
             for i in range(1, 6):
                 with lunch_cols[i]:
                     st.markdown(f"""
-                    <div style="margin: 2px 0; min-height: 60px;">
+                    <div style="margin: 2px 0; height: 70px;">
                     </div>
                     """, unsafe_allow_html=True)
 
