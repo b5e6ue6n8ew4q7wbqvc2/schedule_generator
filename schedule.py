@@ -90,69 +90,57 @@ def create_schedule_table():
     for class_info in st.session_state.classes:
         day = class_info['day']
         period = class_info['period']
-        # Update time in case periods were changed after class was added
         current_time = time_periods[period]
         schedule_data[day][period] = {
             "content": f"<b>{class_info['course_name']}</b><br>{class_info['classroom']}<br><i>{current_time}</i>",
             "color": class_info['color']
         }
     
-    # Prepare table data
-    header_values = ["<b>Time</b>"] + [f"<b>{day}</b>" for day in DAYS]
+    # Build table data row by row
+    table_data = []
+    cell_colors = []
     
-    # Create rows data
-    table_values = []
-    table_colors = []
+    # Header row
+    header_row = ["<b>Time</b>", "<b>Monday</b>", "<b>Tuesday</b>", "<b>Wednesday</b>", "<b>Thursday</b>", "<b>Friday</b>"]
+    header_colors = ["#343a40"] * 6
     
-    # Time column
-    time_column = []
-    time_colors = []
-    
-    # Data columns for each day
-    day_columns = {day: [] for day in DAYS}
-    day_colors = {day: [] for day in DAYS}
-    
-    # Build rows
+    # Data rows
     for period in PERIODS:
-        # Time column
-        time_column.append(f"<b>Period {period}</b><br>{time_periods[period]}")
-        time_colors.append("#e9ecef")
+        # Create row data
+        row_data = [f"<b>Period {period}</b><br>{time_periods[period]}"]
+        row_colors = ["#e9ecef"]
         
-        # Day columns
+        # Add data for each day
         for day in DAYS:
-            if schedule_data[day][period]["content"]:
-                day_columns[day].append(schedule_data[day][period]["content"])
-                day_colors[day].append(schedule_data[day][period]["color"])
-            else:
-                day_columns[day].append("")
-                day_colors[day].append("#f8f9fa")
+            content = schedule_data[day][period]["content"]
+            color = schedule_data[day][period]["color"]
+            
+            row_data.append(content)
+            row_colors.append(color)
+        
+        table_data.append(row_data)
+        cell_colors.append(row_colors)
         
         # Add lunch break after period 2
         if period == 2:
-            time_column.append(f"<b>Lunch Break</b><br>{time_periods['Lunch']}")
-            time_colors.append("#ffc107")
-            
-            for day in DAYS:
-                day_columns[day].append("")
-                day_colors[day].append("#fff3cd")
+            lunch_row = [f"<b>Lunch Break</b><br>{time_periods['Lunch']}", "", "", "", "", ""]
+            lunch_colors = ["#ffc107", "#fff3cd", "#fff3cd", "#fff3cd", "#fff3cd", "#fff3cd"]
+            table_data.append(lunch_row)
+            cell_colors.append(lunch_colors)
     
-    # Combine all columns
-    all_values = [time_column] + [day_columns[day] for day in DAYS]
-    all_colors = [time_colors] + [day_colors[day] for day in DAYS]
-    
-    # Create figure
+    # Create the figure
     fig = go.Figure(data=[go.Table(
         header=dict(
-            values=header_values,
-            fill_color="#343a40",
+            values=header_row,
+            fill_color=header_colors,
             font=dict(color="white", size=14),
             height=40,
             align="center"
         ),
         cells=dict(
-            values=all_values,
-            fill_color=all_colors,
-            font=dict(color="white", size=12),
+            values=list(zip(*table_data)),  # Transpose the data
+            fill_color=list(zip(*cell_colors)),  # Transpose the colors
+            font=dict(color=["black"] * len(table_data[0]), size=12),
             height=80,
             align="center"
         )
