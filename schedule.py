@@ -5,6 +5,13 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 from datetime import datetime
 import json
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from io import BytesIO
+import calendar
 
 # Configure page
 st.set_page_config(
@@ -155,6 +162,173 @@ def create_office_hours_display():
     
     return oh_text
 
+def generate_pdf_schedule(semester, professor_name):
+    """Generate a PDF of the class schedule"""
+    buffer = BytesIO()
+    
+    # Create PDF document
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(letter),
+        rightMargin=0.5*inch,
+        leftMargin=0.5*inch,
+        topMargin=0.5*inch,
+        bottomMargin=0.5*inch
+    )
+    
+    # Container for PDF elements
+    elements = []
+    
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=20,
+        alignment=1,  # Center alignment
+        textColor=colors.black
+    )
+    
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=10,
+        alignment=1,  # Center alignment
+        textColor=colors.grey
+    )
+    
+    # Title
+    if professor_name:
+        title = Paragraph(f"{professor_name} - {semester}", title_style)
+    else:
+        title = Paragraph(f"Class Schedule - {semester}", title_style)
+    elements.append(title)
+    
+    subtitle = Paragraph("Weekly Class Schedule", subtitle_style)
+    elements.append(subtitle)
+    elements.append(Spacer(1, 20))
+    
+    # Create schedule data for PDF
+    schedule_grid = {}
+    for day in DAYS:
+        schedule_grid[day] = {}
+        for period in PERIODS:
+            schedule_grid[day][period] = ""
+    
+    # Fill in classes
+    for class_info in st.session_state.classes:
+        day = class_info['day']
+        period = class_info['period']
+        schedule_grid[day][period] = f"{class_info['course_name']}\n{class_info['classroom']}"
+    
+    # Create table data
+    table_data = []
+    
+    # Header row
+    header_row = ['Time'] + DAYS
+    table_data.append(header_row)
+    
+    # Period rows
+    for period in PERIODS:
+        row = [f"Period {period}\n{TIME_PERIODS[period]}"]
+        for day in DAYS:
+            cell_content = schedule_grid[day][period] if schedule_grid[day][period] else ""
+            row.append(cell_content)
+        table_data.append(row)
+        
+        # Add lunch break after period 2
+        if period == 2:
+            lunch_row = ["Lunch Break\n12:15-13:10"] + [""] * 5
+            table_data.append(lunch_row)
+    
+    # Create table
+    table = Table(table_data, colWidths=[1.2*inch, 1.8*inch, 1.8*inch, 1.8*inch, 1.8*inch, 1.8*inch])
+    
+    # Table style
+    table_style = TableStyle([
+        # Header styling
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        
+        # Time column styling
+        ('BACKGROUND', (0, 1), (0, -1), colors.lightgrey),
+        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 1), (0, -1), 9),
+        
+        # General cell styling
+        ('FONTNAME', (1, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (1, 1), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (1, 1), (-1, -1), [colors.white, colors.lightgrey]),
+        
+        # Lunch break styling
+        ('BACKGROUND', (0, 3), (-1, 3), colors.orange),
+        ('TEXTCOLOR', (0, 3), (-1, 3), colors.black),
+        ('FONTNAME', (0, 3), (-1, 3), 'Helvetica-Bold'),
+    ])
+    
+    # Apply different background colors for class cells
+    row_idx = 1
+    for period in PERIODS:
+        for col_idx, day in enumerate(DAYS, 1):
+            if schedule_grid[day][period]:  # If there's a class
+                # Find the class info to get its color
+                class_color = colors.lightblue  # default
+                for class_info in st.session_state.classes:
+                    if class_info['day'] == day and class_info['period'] == period:
+                        # Convert hex color to RGB
+                        hex_color = class_info['color'].lstrip('#')
+                        rgb = tuple(int(hex_color[i:i+2], 16)/255.0 for i in (0, 2, 4))
+                        class_color = colors.Color(rgb[0], rgb[1], rgb[2])
+                        break
+                
+                table_style.add('BACKGROUND', (col_idx, row_idx), (col_idx, row_idx), class_color)
+                table_style.add('TEXTCOLOR', (col_idx, row_idx), (col_idx, row_idx), colors.white)
+                table_style.add('FONTNAME', (col_idx, row_idx), (col_idx, row_idx), 'Helvetica-Bold')
+        
+        row_idx += 1
+        if period == 2:  # Skip lunch row
+            row_idx += 1
+    
+    table.setStyle(table_style)
+    elements.append(table)
+    
+    # Office hours section
+    if st.session_state.office_hours:
+        elements.append(Spacer(1, 20))
+        oh_title = Paragraph("Office Hours", styles['Heading2'])
+        elements.append(oh_title)
+        
+        oh_data = [['Day', 'Time', 'Location']]
+        for oh in st.session_state.office_hours:
+            oh_data.append([oh['day'], oh['time_display'], oh['location']])
+        
+        oh_table = Table(oh_data, colWidths=[1.5*inch, 1.5*inch, 2*inch])
+        oh_table_style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+        ])
+        oh_table.setStyle(oh_table_style)
+        elements.append(oh_table)
+    
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
 def main():
     st.title("🗓️ Professor Class Schedule Generator")
     st.markdown("Create a professional weekly class schedule for your semester.")
@@ -291,15 +465,49 @@ def main():
     with tab3:
         st.header("💾 Export Options")
         
-        st.markdown("""
-        ### How to Export Your Schedule:
+        # PDF Export
+        st.subheader("📄 PDF Export")
+        if st.session_state.classes:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("📥 Generate PDF", type="primary"):
+                    with st.spinner("Generating PDF..."):
+                        try:
+                            pdf_buffer = generate_pdf_schedule(semester, professor_name)
+                            
+                            st.download_button(
+                                label="📄 Download Schedule PDF",
+                                data=pdf_buffer.getvalue(),
+                                file_name=f"schedule_{semester.lower().replace(' ', '_')}.pdf",
+                                mime="application/pdf"
+                            )
+                            st.success("✅ PDF generated successfully!")
+                        except Exception as e:
+                            st.error(f"❌ Error generating PDF: {str(e)}")
+            
+            with col2:
+                st.info("""
+                **PDF Features:**
+                • Professional landscape layout
+                • Color-coded classes
+                • Office hours included  
+                • Print-ready format
+                """)
+        else:
+            st.info("👈 Add some classes first to generate a PDF!")
         
+        st.markdown("---")
+        
+        # Other export methods
+        st.subheader("🖼️ Other Export Methods")
+        st.markdown("""
         **📸 Screenshot Method:**
         1. Go to the "Visual Schedule" tab
         2. Take a screenshot of the schedule table
         3. Use your favorite image editor to crop if needed
         
-        **🖨️ Print Method:**
+        **🖨️ Browser Print Method:**
         1. Use your browser's print function (Ctrl+P / Cmd+P)
         2. Select "Print to PDF" as destination
         3. Choose landscape orientation for best results
