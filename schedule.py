@@ -76,115 +76,113 @@ def add_office_hours(day, start_time, end_time, location):
     st.session_state.office_hours.append(office_hour)
 
 def create_schedule_table():
-    """Create a visual schedule table using Plotly"""
+    """Create a visual schedule table using HTML"""
     time_periods = get_time_periods()
     
     # Create the schedule matrix
-    # Rows: Time periods + lunch
-    # Columns: Time, Monday, Tuesday, Wednesday, Thursday, Friday
-    
-    # Initialize empty schedule
     schedule_matrix = {}
     for day in DAYS:
         schedule_matrix[day] = {}
         for period in PERIODS:
-            schedule_matrix[day][period] = ""
+            schedule_matrix[day][period] = {"content": "", "color": "#f8f9fa", "text_color": "#000000"}
     
     # Fill with class data
     for class_info in st.session_state.classes:
         day = class_info['day']
         period = class_info['period']
-        content = f"{class_info['course_name']}<br>{class_info['classroom']}"
-        schedule_matrix[day][period] = content
+        content = f"<b>{class_info['course_name']}</b><br>{class_info['classroom']}"
+        text_color = "#000000" if class_info['color'] == "#f1c40f" else "#ffffff"  # Black text on yellow
+        schedule_matrix[day][period] = {
+            "content": content,
+            "color": class_info['color'],
+            "text_color": text_color
+        }
     
-    # Build table values (each list is a column)
-    time_col = []
-    mon_col = []
-    tue_col = []
-    wed_col = []
-    thu_col = []
-    fri_col = []
+    # Build HTML table
+    html = """
+    <style>
+    .schedule-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-family: Arial, sans-serif;
+    }
+    .schedule-table th {
+        background-color: #343a40;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        border: 1px solid #000;
+    }
+    .schedule-table td {
+        padding: 15px;
+        text-align: center;
+        border: 1px solid #000;
+        height: 80px;
+        vertical-align: middle;
+    }
+    .time-cell {
+        background-color: #e9ecef !important;
+        color: #000 !important;
+        font-weight: bold;
+    }
+    .lunch-cell {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+        font-weight: bold;
+    }
+    .lunch-empty {
+        background-color: #fff3cd !important;
+    }
+    </style>
     
-    # Build table colors (each list is a column)
-    time_colors = []
-    mon_colors = []
-    tue_colors = []
-    wed_colors = []
-    thu_colors = []
-    fri_colors = []
+    <table class="schedule-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Monday</th>
+                <th>Tuesday</th>
+                <th>Wednesday</th>
+                <th>Thursday</th>
+                <th>Friday</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
     
-    # Add each period
+    # Add period rows
     for period in PERIODS:
-        # Time column
-        time_col.append(f"Period {period}<br>{time_periods[period]}")
-        time_colors.append("#e9ecef")
+        html += "<tr>"
         
-        # Day columns
-        for day, col, col_colors in [
-            ("Monday", mon_col, mon_colors),
-            ("Tuesday", tue_col, tue_colors), 
-            ("Wednesday", wed_col, wed_colors),
-            ("Thursday", thu_col, thu_colors),
-            ("Friday", fri_col, fri_colors)
-        ]:
-            content = schedule_matrix[day][period]
-            col.append(content)
+        # Time cell
+        html += f'<td class="time-cell">Period {period}<br>{time_periods[period]}</td>'
+        
+        # Day cells
+        for day in DAYS:
+            cell_data = schedule_matrix[day][period]
+            content = cell_data["content"] if cell_data["content"] else ""
+            bg_color = cell_data["color"]
+            text_color = cell_data["text_color"]
             
-            if content:  # Has a class
-                # Find the color for this class
-                class_color = "#1f77b4"  # default blue
-                for class_info in st.session_state.classes:
-                    if class_info['day'] == day and class_info['period'] == period:
-                        class_color = class_info['color']
-                        break
-                col_colors.append(class_color)
-            else:
-                col_colors.append("#f8f9fa")  # light gray for empty
+            html += f'<td style="background-color: {bg_color}; color: {text_color};">{content}</td>'
+        
+        html += "</tr>"
         
         # Add lunch break after period 2
         if period == 2:
-            time_col.append(f"Lunch Break<br>{time_periods['Lunch']}")
-            time_colors.append("#ffc107")
-            
-            # Empty lunch cells for all days
-            for col, col_colors in [
-                (mon_col, mon_colors), (tue_col, tue_colors), 
-                (wed_col, wed_colors), (thu_col, thu_colors), (fri_col, fri_colors)
-            ]:
-                col.append("")
-                col_colors.append("#fff3cd")
+            html += "<tr>"
+            html += f'<td class="lunch-cell">Lunch Break<br>{time_periods["Lunch"]}</td>'
+            for day in DAYS:
+                html += '<td class="lunch-empty"></td>'
+            html += "</tr>"
     
-    # Create the figure
-    fig = go.Figure(data=[go.Table(
-        header=dict(
-            values=["<b>Time</b>", "<b>Monday</b>", "<b>Tuesday</b>", "<b>Wednesday</b>", "<b>Thursday</b>", "<b>Friday</b>"],
-            fill_color="#343a40",
-            font=dict(color="white", size=14),
-            height=40,
-            align="center"
-        ),
-        cells=dict(
-            values=[time_col, mon_col, tue_col, wed_col, thu_col, fri_col],
-            fill_color=[time_colors, mon_colors, tue_colors, wed_colors, thu_colors, fri_colors],
-            font=dict(color="white", size=12),
-            height=80,
-            align="center",
-            line=dict(color="#000000", width=1)
-        )
-    )])
+    html += "</tbody></table>"
     
-    fig.update_layout(
-        title={
-            'text': "Weekly Class Schedule",
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'size': 20}
-        },
-        height=600,
-        margin=dict(l=0, r=0, t=50, b=0)
-    )
-    
-    return fig
+    return html
+
+# Then update the display in tab1:
+
 def create_office_hours_display():
     """Create office hours display"""
     if not st.session_state.office_hours:
@@ -537,8 +535,8 @@ def main():
         
         # Create and display schedule
         if st.session_state.classes:
-            fig = create_schedule_table()
-            st.plotly_chart(fig, use_container_width=True)
+            html_table = create_schedule_table()
+            st.markdown(html_table, unsafe_allow_html=True)
             
             # Office hours display
             oh_display = create_office_hours_display()
